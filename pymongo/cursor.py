@@ -21,7 +21,6 @@ from collections import deque
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
     Iterable,
     List,
@@ -438,7 +437,7 @@ class Cursor(Generic[_DocumentType]):
 
     def __query_spec(self):
         """Get the spec to use for a query."""
-        operators: Dict[str, Any] = {}
+        operators: dict[str, Any] = {}
         if self.__ordering:
             operators["$orderby"] = self.__ordering
         if self.__explain:
@@ -895,7 +894,7 @@ class Cursor(Generic[_DocumentType]):
 
         .. seealso:: :meth:`pymongo.collection.Collection.distinct`
         """
-        options: Dict[str, Any] = {}
+        options: dict[str, Any] = {}
         if self.__spec:
             options["query"] = self.__spec
         if self.__max_time_ms is not None:
@@ -1013,11 +1012,11 @@ class Cursor(Generic[_DocumentType]):
 
         # Avoid overwriting a filter argument that was given by the user
         # when updating the spec.
-        spec: Dict[str, Any]
+        spec: dict[str, Any]
         if self.__has_filter:
             spec = dict(self.__spec)
         else:
-            spec = cast(Dict, self.__spec)
+            spec = cast(dict, self.__spec)
         spec["$where"] = code
         self.__spec = spec
         return self
@@ -1119,7 +1118,12 @@ class Cursor(Generic[_DocumentType]):
             self.close()
 
     def _unpack_response(
-        self, response, cursor_id, codec_options, user_fields=None, legacy_response=False
+        self,
+        response,
+        cursor_id,
+        codec_options,
+        user_fields=None,
+        legacy_response=False,
     ):
         return response.unpack_response(cursor_id, codec_options, user_fields, legacy_response)
 
@@ -1328,7 +1332,12 @@ class RawBatchCursor(Cursor, Generic[_DocumentType]):
         super().__init__(collection, *args, **kwargs)
 
     def _unpack_response(
-        self, response, cursor_id, codec_options, user_fields=None, legacy_response=False
+        self,
+        response,
+        cursor_id,
+        codec_options,
+        user_fields=None,
+        legacy_response=False,
     ):
         raw_response = response.raw_response(cursor_id, user_fields=user_fields)
         if not legacy_response:
