@@ -20,6 +20,7 @@ from collections import abc
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Mapping,
@@ -151,7 +152,7 @@ def _index_document(index_list: _IndexList) -> abc.MutableMapping[str, Any]:
 
 
 def _check_command_response(
-    response: dict[str, Any],
+    response: Dict[str, Any],
     max_wire_version: int,
     allowable_errors: Optional[List[int]] = None,
     parse_write_concern_error: bool = False,
@@ -233,7 +234,7 @@ def _raise_write_concern_error(error: Any) -> NoReturn:
     raise WriteConcernError(error.get("errmsg"), error.get("code"), error)
 
 
-def _get_wce_doc(result: dict[str, Any]) -> Optional[dict[str, Any]]:
+def _get_wce_doc(result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Return the writeConcernError or None."""
     wce = result.get("writeConcernError")
     if wce:
@@ -245,7 +246,7 @@ def _get_wce_doc(result: dict[str, Any]) -> Optional[dict[str, Any]]:
     return wce
 
 
-def _check_write_command_response(result: dict[str, Any]) -> None:
+def _check_write_command_response(result: Dict[str, Any]) -> None:
     """Backward compatibility helper for write command error handling."""
     # Prefer write errors over write concern errors
     write_errors = result.get("writeErrors")

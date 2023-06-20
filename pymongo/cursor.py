@@ -21,6 +21,7 @@ from collections import abc, deque
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     Generic,
     Iterable,
     List,
@@ -437,7 +438,7 @@ class Cursor(Generic[_DocumentType]):
 
     def __query_spec(self):
         """Get the spec to use for a query."""
-        operators: dict[str, Any] = {}
+        operators: Dict[str, Any] = {}
         if self.__ordering:
             operators["$orderby"] = self.__ordering
         if self.__explain:
@@ -894,7 +895,7 @@ class Cursor(Generic[_DocumentType]):
 
         .. seealso:: :meth:`pymongo.collection.Collection.distinct`
         """
-        options: dict[str, Any] = {}
+        options: Dict[str, Any] = {}
         if self.__spec:
             options["query"] = self.__spec
         if self.__max_time_ms is not None:
@@ -1012,7 +1013,7 @@ class Cursor(Generic[_DocumentType]):
 
         # Avoid overwriting a filter argument that was given by the user
         # when updating the spec.
-        spec: dict[str, Any]
+        spec: Dict[str, Any]
         if self.__has_filter:
             spec = dict(self.__spec)
         else:
