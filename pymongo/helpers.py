@@ -118,7 +118,7 @@ def _index_list(
         return values
 
 
-def _index_document(index_list: _IndexList) -> SON[str, Any]:
+def _index_document(index_list: _IndexList) -> abc.MutableMapping[str, Any]:
     """Helper to generate an index specifying document.
 
     Takes a list of (key, direction) pairs.
@@ -134,7 +134,7 @@ def _index_document(index_list: _IndexList) -> SON[str, Any]:
     if not len(index_list):
         raise ValueError("key_or_list must not be the empty list")
 
-    index: SON[str, Any] = SON()
+    index = SON()
     for item in index_list:
         if isinstance(item, str):
             item = (item, ASCENDING)

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import copy
 import warnings
-from collections import deque
+from collections import abc, deque
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -273,7 +273,7 @@ class Cursor(Generic[_DocumentType]):
         self.__show_record_id = show_record_id
         self.__allow_disk_use = allow_disk_use
         self.__snapshot = snapshot
-        self.__hint: Union[str, SON[str, Any], None]
+        self.__hint: Union[str, abc.MutableMapping[str, Any], None]
         self.__set_hint(hint)
 
         # Exhaust cursor support
