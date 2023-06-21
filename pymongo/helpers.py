@@ -135,7 +135,7 @@ def _index_document(index_list: _IndexList) -> abc.MutableMapping[str, Any]:
     if not len(index_list):
         raise ValueError("key_or_list must not be the empty list")
 
-    index = SON()
+    index: SON[str, Any] = SON()
     for item in index_list:
         if isinstance(item, str):
             item = (item, ASCENDING)
@@ -152,7 +152,7 @@ def _index_document(index_list: _IndexList) -> abc.MutableMapping[str, Any]:
 
 
 def _check_command_response(
-    response: Dict[str, Any],
+    response: Mapping[str, Any],
     max_wire_version: int,
     allowable_errors: Optional[List[int]] = None,
     parse_write_concern_error: bool = False,
@@ -234,7 +234,7 @@ def _raise_write_concern_error(error: Any) -> NoReturn:
     raise WriteConcernError(error.get("errmsg"), error.get("code"), error)
 
 
-def _get_wce_doc(result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _get_wce_doc(result: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
     """Return the writeConcernError or None."""
     wce = result.get("writeConcernError")
     if wce:
@@ -246,7 +246,7 @@ def _get_wce_doc(result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return wce
 
 
-def _check_write_command_response(result: Dict[str, Any]) -> None:
+def _check_write_command_response(result: Mapping[str, Any]) -> None:
     """Backward compatibility helper for write command error handling."""
     # Prefer write errors over write concern errors
     write_errors = result.get("writeErrors")
