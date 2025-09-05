@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from pymongo import MongoClient
 
 
-class RunOrderTransaction(threading.Thread):
+class RunOrderTransaction:
     def __init__(self, client):
         super(RunOrderTransaction, self).__init__()  # noqa:UP008
         self.retry_attempts = -1
@@ -29,8 +28,8 @@ class RunOrderTransaction(threading.Thread):
 
 
 def callback(session, client):
-    order_id = client.test.orders.insert_one({"sku": "foo", "qty": 1}, session=session).inserted_id
-    res = client.test.inventory.update_one(
+    order_id = client.test.orders1.insert_one({"sku": "foo", "qty": 1}, session=session).inserted_id
+    res = client.test.inventory1.update_one(
         {"sku": "foo", "qty": {"$gte": 1}}, {"$inc": {"qty": -1}}, session=session
     )
     if not res.modified_count:
@@ -43,18 +42,19 @@ def run(num_threads: int):
     client = MongoClient()
     client.drop_database("test")
     db = client.test
-    db.create_collection("orders")
-    inventory = db.create_collection("inventory")
+    db.create_collection("orders1")
+    inventory = db.create_collection("inventory1")
     inventory.insert_one({"sku": "foo", "qty": 1000000})
 
     print("Testing %s threads" % num_threads)  # noqa:T201
     start = time.time()
     N_TXNS = 128
     results = []
-    for i in range(num_threads):
-        with ThreadPoolExecutor(num_threads) as exc:
-            futures = [exc.submit(RunOrderTransaction(client).run) for i in range(N_TXNS)]
-        for future in as_completed(futures):
+    # for i in range(num_threads):
+    ops = [RunOrderTransaction(client) for _ in range(N_TXNS)]
+    with ThreadPoolExecutor(max_workers=num_threads) as exc:
+        futures = [exc.submit(op.run) for op in ops]
+        for future in futures:
             result = future.result()
             results.append(result)
 
@@ -64,13 +64,14 @@ def run(num_threads: int):
 
     print("All threads completed after %s seconds" % (end - start))  # noqa:T201
     print(f"Total number of attempts: {total_attempts}")  # noqa:T201
+    client.close()
 
     latencies = sorted(r.time for r in results)
-    avg_latency = sum(latencies) / num_threads
-    p50 = latencies[int(num_threads * 0.5)]
-    p90 = latencies[int(num_threads * 0.9)]
-    p99 = latencies[int(num_threads * 0.99)]
-    p100 = latencies[int(num_threads * 1.0) - 1]
+    avg_latency = sum(latencies) / N_TXNS
+    p50 = latencies[int(N_TXNS * 0.5)]
+    p90 = latencies[int(N_TXNS * 0.9)]
+    p99 = latencies[int(N_TXNS * 0.99)]
+    p100 = latencies[int(N_TXNS * 1.0) - 1]
     # print(f'avg latency: {avg_latency:.2f}s p50: {p50:.2f}s p90: {p90:.2f}s p99: {p99:.2f}s p100: {p100:.2f}s')
     return total_time, total_attempts, avg_latency, p50, p90, p99, p100
 
