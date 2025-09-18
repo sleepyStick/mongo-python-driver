@@ -48,7 +48,7 @@ def run(num_threads: int):
 
     print("Testing %s threads" % num_threads)  # noqa:T201
     start = time.time()
-    N_TXNS = 128
+    N_TXNS = 64
     results = []
     # for i in range(num_threads):
     ops = [RunOrderTransaction(client) for _ in range(N_TXNS)]
@@ -63,7 +63,7 @@ def run(num_threads: int):
     total_attempts = sum(r.retry_attempts for r in results)
 
     print("All threads completed after %s seconds" % (end - start))  # noqa:T201
-    print(f"Total number of attempts: {total_attempts}")  # noqa:T201
+    print(f"Total number of retry attempts: {total_attempts}")  # noqa:T201
     client.close()
 
     latencies = sorted(r.time for r in results)
@@ -77,7 +77,9 @@ def run(num_threads: int):
 
 
 def main():
-    NUM_THREADS = [2, 4, 8, 16, 32, 64, 128, 200, 256, 512]
+    # mdb_version = client.server_info()["version"]
+    # print(f"MongoDB: {mdb_version}, PyMongo: {pymongo.version}, Python {sys.version}")
+    NUM_THREADS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
     data = {}
     for num in NUM_THREADS:
         times, attempts, avg_latency, p50, p90, p99, p100 = run(num)
