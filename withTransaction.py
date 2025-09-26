@@ -39,22 +39,33 @@ def callback(session, client):
 
 
 def run(num_threads: int):
-    client = MongoClient()
-    client.drop_database("test")
+    # client = MongoClient()
+
+    client = MongoClient(
+        "mongodb+srv://irisho:irisho@cluster0.j87ua.mongodb-dev.net/?retryWrites=true&w=majority&appName=Cluster0"
+    )
+    try:
+        client.drop_database("test")
+    except Exception:  # noqa: S110
+        # fails on atlas?
+        pass
     db = client.test
+    db.drop_collection("orders1")
     db.create_collection("orders1")
+    db.drop_collection("inventory1")
     inventory = db.create_collection("inventory1")
     inventory.insert_one({"sku": "foo", "qty": 1000000})
 
-    print("Testing %s threads" % num_threads)  # noqa:T201
+    f.write("Testing %s threads\n" % num_threads)
     start = time.time()
-    N_TXNS = 64
+    N_TXNS = 512
     results = []
     # for i in range(num_threads):
     ops = [RunOrderTransaction(client) for _ in range(N_TXNS)]
     with ThreadPoolExecutor(max_workers=num_threads) as exc:
         futures = [exc.submit(op.run) for op in ops]
         for future in futures:
+            start = time.monotonic()
             result = future.result()
             results.append(result)
 
@@ -62,8 +73,8 @@ def run(num_threads: int):
     total_time = end - start
     total_attempts = sum(r.retry_attempts for r in results)
 
-    print("All threads completed after %s seconds" % (end - start))  # noqa:T201
-    print(f"Total number of retry attempts: {total_attempts}")  # noqa:T201
+    f.write("All threads completed after %s seconds\n" % (end - start))
+    f.write(f"Total number of retry attempts: {total_attempts}\n")
     client.close()
 
     latencies = sorted(r.time for r in results)
@@ -76,10 +87,18 @@ def run(num_threads: int):
     return total_time, total_attempts, avg_latency, p50, p90, p99, p100
 
 
-def main():
+def main(f):
     # mdb_version = client.server_info()["version"]
     # print(f"MongoDB: {mdb_version}, PyMongo: {pymongo.version}, Python {sys.version}")
-    NUM_THREADS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+    # NUM_THREADS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    NUM_THREADS = [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+    ]
     data = {}
     for num in NUM_THREADS:
         times, attempts, avg_latency, p50, p90, p99, p100 = run(num)
@@ -90,13 +109,24 @@ def main():
             "p99": p99,
             "p100": p100,
         }
-        print()  # noqa:T201
-    print("\nthreads |  avg  |  p50  |  p90  |  p99  |  p100")  # noqa:T201
+        f.write("\n")
+        time.sleep(10)
+    f.write("\nthreads |  avg  |  p50  |  p90  |  p99  |  p100\n")
     for num in NUM_THREADS:
-        print(  # noqa:T201
-            f"{num:7} | {data[num]['avg']:5.2f} | {data[num]['p50']:5.2f} | {data[num]['p90']:5.2f} | {data[num]['p90']:5.2f} | {data[num]['p100']:5.2f}"
+        f.write(
+            f"{num:7} | {data[num]['avg']:5.2f} | {data[num]['p50']:5.2f} | {data[num]['p90']:5.2f} | {data[num]['p90']:5.2f} | {data[num]['p100']:5.2f}\n"
         )
 
 
 if __name__ == "__main__":
-    main()
+    # max = [.75, 1, 1.5]
+    # initial = [0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05]
+    # initial = [0.001, 0.01, 0.05]
+
+    # for i in max:
+    #     for j in initial:
+    #         client_session.ClientSession.set_backoff_max(i)
+    #         client_session.ClientSession.set_backoff_init(j)
+    #         print(f"{i=}, {j=}")
+    with open("/Users/iris.ho/Github/backpressure/512txns_new/M30.txt", "w") as f:
+        main(f)

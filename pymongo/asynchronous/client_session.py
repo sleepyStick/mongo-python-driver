@@ -473,8 +473,8 @@ _UNKNOWN_COMMIT_ERROR_CODES: frozenset = _RETRYABLE_ERROR_CODES | frozenset(  # 
 # This limit is non-configurable and was chosen to be twice the 60 second
 # default value of MongoDB's `transactionLifetimeLimitSeconds` parameter.
 _WITH_TRANSACTION_RETRY_TIME_LIMIT = 120
-_BACKOFF_MAX = 1
-_BACKOFF_INITIAL = 0.050  # 50ms initial backoff
+_BACKOFF_MAX = 1.5
+_BACKOFF_INITIAL = 0.015  # 50ms initial backoff
 
 
 def _within_time_limit(start_time: float) -> bool:
@@ -518,6 +518,16 @@ class AsyncClientSession:
         # Is this an implicitly created session?
         self._implicit = implicit
         self._transaction = _Transaction(None, client)
+
+    @staticmethod
+    def set_backoff_max(n):
+        global _BACKOFF_MAX  # noqa:PLW0603
+        _BACKOFF_MAX = n
+
+    @staticmethod
+    def set_backoff_init(n):
+        global _BACKOFF_INITIAL  # noqa:PLW0603
+        _BACKOFF_INITIAL = n
 
     async def end_session(self) -> None:
         """Finish this session. If a transaction has started, abort it.
