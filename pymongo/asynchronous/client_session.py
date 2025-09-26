@@ -137,7 +137,6 @@ from __future__ import annotations
 
 import asyncio
 import collections
-import random
 import time
 import uuid
 from collections.abc import Mapping as _Mapping
@@ -473,8 +472,8 @@ _UNKNOWN_COMMIT_ERROR_CODES: frozenset = _RETRYABLE_ERROR_CODES | frozenset(  # 
 # This limit is non-configurable and was chosen to be twice the 60 second
 # default value of MongoDB's `transactionLifetimeLimitSeconds` parameter.
 _WITH_TRANSACTION_RETRY_TIME_LIMIT = 120
-_BACKOFF_MAX = 1.5
-_BACKOFF_INITIAL = 0.015  # 50ms initial backoff
+_BACKOFF_FACTOR = 0.1
+_BACKOFF_GROWTH = 1.1
 
 
 def _within_time_limit(start_time: float) -> bool:
@@ -715,11 +714,12 @@ class AsyncClientSession:
         """
         start_time = time.monotonic()
         retry = 0
+        _backoff_factor = _BACKOFF_FACTOR
         while True:
             if retry:  # Implement exponential backoff on retry.
-                jitter = random.random()  # noqa: S311
-                backoff = jitter * min(_BACKOFF_INITIAL * (2**retry), _BACKOFF_MAX)
-                await asyncio.sleep(backoff)
+                conflict_time = time.monotonic() - start_time
+                await asyncio.sleep((conflict_time / retry) * _backoff_factor)
+                _backoff_factor *= _BACKOFF_GROWTH
             retry += 1
             await self.start_transaction(
                 read_concern, write_concern, read_preference, max_commit_time_ms
