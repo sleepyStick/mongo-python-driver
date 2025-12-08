@@ -1189,13 +1189,15 @@ class Pool:
         try:
             conn = self._get_conn(checkout_started_time, handler=handler)
         except Exception:
-            self.error_times.append((time.monotonic(), 1))
+            with self.lock:
+                self.error_times.append((time.monotonic(), 1))
             raise
 
         # clear old info from error rate >10 seconds old
         watermark = time.monotonic() - 10
-        while self.error_times and self.error_times[0][0] < watermark:
-            self.error_times.popleft()
+        with self.lock:
+            while self.error_times and self.error_times[0][0] < watermark:
+                self.error_times.popleft()
 
         duration = time.monotonic() - checkout_started_time
         if self.enabled_for_cmap:
@@ -1215,10 +1217,12 @@ class Pool:
             with self.lock:
                 self.active_contexts.add(conn.cancel_context)
             yield conn
-            self.error_times.append((time.monotonic(), 0))
+            with self.lock:
+                self.error_times.append((time.monotonic(), 0))
         # Catch KeyboardInterrupt, CancelledError, etc. and cleanup.
         except BaseException:
-            self.error_times.append((time.monotonic(), 1))
+            with self.lock:
+                self.error_times.append((time.monotonic(), 1))
             # Exception in caller. Ensure the connection gets returned.
             # Note that when pinned is True, the session owns the
             # connection and it is responsible for checking the connection
