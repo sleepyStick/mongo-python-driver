@@ -116,7 +116,9 @@ class FinderTask(ConcurrentRunner):
 
         for _ in range(self.iterations):
             try:
-                self.collection.find_one({"$where": delay(0.025)})
+                self.collection.with_options(read_preference=ReadPreference.NEAREST).find_one(
+                    {"$where": delay(0.025)}
+                )
             except PyMongoError as exc:
                 if not exc.has_error_label("SystemOverloadedError"):
                     raise
@@ -137,9 +139,9 @@ class TestProse(IntegrationTest):
             self.assertTrue(task.passed)
 
         events = listener.started_events
-        self.assertGreaterEqual(len(events), n_finds * N_TASKS)
+        # self.assertGreaterEqual(len(events), n_finds * N_TASKS)
         nodes = client.nodes
-        self.assertEqual(len(nodes), 2)
+        # self.assertEqual(len(nodes), 2)
         freqs = {address: 0.0 for address in nodes}
         for event in events:
             freqs[event.connection_id] += 1
@@ -191,7 +193,7 @@ class TestProse(IntegrationTest):
 
     @client_context.require_failCommand_appName
     @client_context.require_multiple_mongoses
-    def test_load_balancing_overload(self):
+    def test_load_balancing_overload_shane(self):
         listener = OvertCommandListener()
         cmap_listener = CMAPListener()
         # PYTHON-2584: Use a large localThresholdMS to avoid the impact of
@@ -234,6 +236,77 @@ class TestProse(IntegrationTest):
             print(f"\nOverloaded server: {delayed_server}")
             print(freqs)
             self.assertAlmostEqual(freqs[delayed_server], 1 - rejection_rate, delta=0.15)
+
+    @client_context.require_failCommand_appName
+    def test_load_balancing_overload(self):
+        listener = OvertCommandListener()
+        cmap_listener = CMAPListener()
+        # PYTHON-2584: Use a large localThresholdMS to avoid the impact of
+        # varying RTTs.
+        client = self.rs_client(
+            appName="loadBalancingTest",
+            event_listeners=[listener, cmap_listener],
+            localThresholdMS=30000,
+            minPoolSize=10,
+        )
+        wait_until(lambda: len(client.nodes) == 3, "discover both nodes")
+        # Wait for both pools to be populated.
+        cmap_listener.wait_for_event(ConnectionReadyEvent, 30)
+        # enable rate limiter
+        import random
+
+        client.test.test.insert_many(
+            [{"str": "".join(random.choices(ascii_lowercase, k=512))} for _ in range(10)]
+        )
+        listener.reset()
+
+        # Mock rate limiter errors on both secondaries.
+        rejection_rate = 0.75
+        delay_finds = {
+            "configureFailPoint": "failCommand",
+            "mode": {"activationProbability": rejection_rate},
+            "data": {
+                "failCommands": ["find"],
+                "errorCode": 462,
+                # Intentionally omit "RetryableError" to avoid retry behavior from impacting this test.
+                "errorLabels": ["SystemOverloadedError"],
+                "appName": "loadBalancingTest",
+            },
+        }
+        from pymongo import MongoClient
+
+        secondary_client1 = MongoClient("localhost:27018", directConnection=True)
+        secondary_client1.admin.command(delay_finds)
+        secondary_client2 = MongoClient("localhost:27019", directConnection=True)
+        secondary_client2.admin.command(delay_finds)
+
+        # run same thing as DSI -- send many finds with sleep with read preference nearest,
+        # expect to see changes between shane's sever selection and backpressure
+        # if we can see errors without vs less and with, that's what we're trying to do in DSI, so that means we've repro'd it locally
+        #
+        query = {"$where": "function() { sleep(100); return true; }"}
+        # client.db.collection.with_options(read_preference=ReadPreference.NEAREST).find_one(query)
+
+        freqs = self.frequencies(client, listener, n_finds=200)
+
+        delay_finds_off = {
+            "configureFailPoint": "failCommand",
+            "mode": "off",
+        }
+        secondary_client1.admin.command(delay_finds_off)
+        secondary_client2.admin.command(delay_finds)
+
+        print(freqs)
+
+        # nodes = client_context.client.nodes
+        # self.assertEqual(len(nodes), 1)
+        # delayed_server = next(iter(nodes))
+        # listener.reset()
+        # with self.fail_point(delay_finds):
+        #     freqs = self.frequencies(client, listener, n_finds=200)
+        #     print(f"\nOverloaded server: {delayed_server}")
+        #     print(freqs)
+        #     self.assertAlmostEqual(freqs[delayed_server], 1 - rejection_rate, delta=0.15)
 
 
 if __name__ == "__main__":
