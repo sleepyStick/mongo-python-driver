@@ -481,18 +481,26 @@ test differences between PyMongo's current tests and the specification.
 All changes listed in these patch files will be *undone* by the script and won't
 be applied to PyMongo's tests.
 
-When a new test file or folder is added to the spec repo before the associated code changes are implemented, that test's path must be added to  `.evergreen/remove-unimplemented-tests.sh` along with a comment indicating the associated PYTHON ticket for those changes.
+When a new test file or folder is added to the spec repo before the associated code changes are implemented,
+that test's path must be added to  `.evergreen/remove-unimplemented-tests.sh` along with a comment
+indicating the associated PYTHON ticket for those changes.
 
-Any PR that implements a PYTHON ticket documented in a patch file or within  `.evergreen/remove-unimplemented-tests.sh` must also remove the associated patch file or entry in `remove-unimplemented-tests.sh`.
+Any PR that implements a PYTHON ticket documented in a patch file or within
+`.evergreen/remove-unimplemented-tests.sh` must also remove the associated patch file or entry
+in `remove-unimplemented-tests.sh`.
 
 #### Adding to a patch file
 To add to or create a patch file, run `git diff` to show the desired changes to undo and copy the
 results into the patch file.
 
-For example: the imaginary, unimplemented PYTHON-1234 ticket has associated spec test changes. To add those changes to `PYTHON-1234.patch`), do the following:
+For example: the imaginary, unimplemented PYTHON-1234 ticket has associated spec test changes. To add those
+changes to `PYTHON-1234.patch`), do the following:
 ```bash
 git diff HEAD~1 path/to/file >> .evergreen/spec-patch/PYTHON-1234.patch
 ```
+
+Note that patch files should only be created for tickets we plan to complete. If there is a feature that pymongo
+doesn't support, remove the file via `remove-unimplemented-tests.sh`.
 
 #### Running Locally
 Both `resync-all-specs.sh` and `resync-all-specs.py` can be run locally (and won't generate a PR).
