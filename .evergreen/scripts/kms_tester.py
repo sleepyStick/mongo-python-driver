@@ -93,7 +93,7 @@ def setup_kms(sub_test_name: str) -> None:
         return
 
     if sub_test_target == "azure":
-        # Opt in to corporate Azure credentials (DRIVERS-3392). setup-secrets.sh
+        # Opt in to corporate Azure credentials (DRIVERS-3392)
         os.environ["FLE_AZURE_USE_CORPORATE"] = "YES"
         run_command("./setup-secrets.sh", cwd=kms_dir)
 
