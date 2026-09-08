@@ -20,7 +20,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Mapping, Sequence
-from typing import Any, Generic, Optional, Union
+from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from bson import CodecOptions
 from pymongo.message import _CursorAddress, _GetMore, _OpMsg
@@ -31,6 +31,9 @@ from pymongo.typings import (
     _DocumentOut,
     _DocumentType,
 )
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 _CURSOR_DOC_FIELDS = {"cursor": {"firstBatch": 1, "nextBatch": 1}}
 
@@ -202,7 +205,7 @@ class _AgnosticCommandCursorBase(_AgnosticCursorBase[_DocumentType]):
     def _get_namespace(self) -> str:
         return self._ns
 
-    def batch_size(self, batch_size: int) -> _AgnosticCommandCursorBase[_DocumentType]:
+    def batch_size(self, batch_size: int) -> Self:
         """Limits the number of documents returned in one batch. Each batch
         requires a round trip to the server. It can be adjusted to optimize
         performance and limit data transfer.
