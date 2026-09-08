@@ -146,14 +146,9 @@ class _AgnosticCursorBase(Generic[_DocumentType], ABC):
 
 class _AgnosticCommandCursorBase(_AgnosticCursorBase[_DocumentType]):
     """An agnostic cursor / iterator over command cursors.
-    Used by :meth:`~pymongo.asynchronous.collection.AsyncCollection.aggregate`,
-    :meth:`~pymongo.asynchronous.database.AsyncDatabase.aggregate`,
-    :meth:`~pymongo.asynchronous.collection.AsyncCollection.list_indexes`,
-    :meth:`~pymongo.asynchronous.collection.AsyncCollection.list_search_indexes`
-    :meth:`~pymongo.asynchronous.database.AsyncDatabase.list_collections`,
-    :meth:`~pymongo.asynchronous.database.AsyncDatabase.cursor_command`,
-    and :meth:`~pymongo.asynchronous.mongo_client.AsyncMongoClient.list_databases`
-    to iterate MongoDB command results.
+    Used by aggregate, list_indexes, list_search_indexes, list_collections, cursor_command,
+    and list_databases helpers on both synchronous and asynchronous APIs to iterate MongoDB
+    command results.
 
     Should not be called directly by application developers.
     """
