@@ -17,6 +17,17 @@ PyMongo 4.18 brings a number of changes including:
   :class:`~pymongo.synchronous.mongo_client.MongoClient` and
   :class:`~pymongo.asynchronous.mongo_client.AsyncMongoClient` documentation for
   security considerations.
+- Added the ``srv_host_validator`` keyword argument to
+  :class:`~pymongo.synchronous.mongo_client.MongoClient` and
+  :class:`~pymongo.asynchronous.mongo_client.AsyncMongoClient`, an alternative to
+  ``srvAllowedHostsSuffix`` for deployments whose acceptable SRV hosts cannot be
+  expressed as a single suffix. The callback is invoked once per SRV-returned
+  host and returns ``True`` to accept it. It is mutually exclusive with
+  ``srvAllowedHostsSuffix`` and, because it takes a callable, cannot be set in a
+  connection string. See the
+  :class:`~pymongo.synchronous.mongo_client.MongoClient` and
+  :class:`~pymongo.asynchronous.mongo_client.AsyncMongoClient` documentation for
+  security considerations.
 - Dropped support for MongoDB 4.2.
 - Added support for MongoDB 9.0.
 - Improved TLS connection performance by reusing TLS sessions across connections
