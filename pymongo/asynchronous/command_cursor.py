@@ -57,6 +57,8 @@ class AsyncCommandCursor(
     Should not be called directly by application developers.
     """
 
+    _collection: AsyncCollection[_DocumentType]
+
     async def _maybe_pin_connection(self, conn: AsyncConnection) -> None:
         client = self._collection.database.client
         if not client._should_pin_cursor(self._session):

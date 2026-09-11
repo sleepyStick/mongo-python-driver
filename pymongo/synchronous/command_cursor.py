@@ -55,6 +55,8 @@ class CommandCursor(_AgnosticCommandCursorBase[_DocumentType], _CursorBase[_Docu
     Should not be called directly by application developers.
     """
 
+    _collection: Collection[_DocumentType]
+
     def _maybe_pin_connection(self, conn: Connection) -> None:
         client = self._collection.database.client
         if not client._should_pin_cursor(self._session):
