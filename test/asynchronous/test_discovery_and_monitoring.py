@@ -41,7 +41,7 @@ from unittest.mock import patch
 from bson import Timestamp, json_util
 from pymongo import common, monitoring
 from pymongo.asynchronous.settings import TopologySettings
-from pymongo.asynchronous.topology import Topology, _ErrorContext
+from pymongo.asynchronous.topology import Topology
 from pymongo.asynchronous.uri_parser import parse_uri
 from pymongo.errors import (
     AutoReconnect,
@@ -60,6 +60,7 @@ from pymongo.monitoring import (
 )
 from pymongo.server_description import SERVER_TYPE, ServerDescription
 from pymongo.topology_description import TOPOLOGY_TYPE
+from pymongo.topology_shared import _ErrorContext
 from test.asynchronous import (
     AsyncIntegrationTest,
     AsyncPyMongoTestCase,
@@ -427,7 +428,7 @@ class TestPoolManagement(AsyncIntegrationTest):
             "pool initialized with 10 connections",
         )
 
-        await client.db.test.insert_one({"x": 1})
+        await client.db.coll.insert_one({"x": 1})
         close_delay = 0.1
         latencies = []
         should_exit = []
@@ -435,7 +436,7 @@ class TestPoolManagement(AsyncIntegrationTest):
         async def run_task():
             while True:
                 start_time = time.monotonic()
-                await client.db.test.find_one({})
+                await client.db.coll.find_one({})
                 elapsed = time.monotonic() - start_time
                 latencies.append(elapsed)
                 if should_exit:
@@ -525,13 +526,13 @@ class TestPoolBackpressure(AsyncIntegrationTest):
             )
 
         # Make sure the collection has at least one document.
-        await client.test.test.delete_many({})
-        await client.test.test.insert_one({})
+        await client.db.coll.delete_many({})
+        await client.db.coll.insert_one({})
 
         # Run a slow operation to tie up the connection.
         async def target():
             try:
-                await client.test.test.find_one({"$where": delay(0.1)})
+                await client.db.coll.find_one({"$where": delay(0.1)})
             except ConnectionFailure:
                 pass
 
